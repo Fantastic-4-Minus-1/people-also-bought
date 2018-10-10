@@ -1,42 +1,82 @@
-const { Pool, Client } = require('pg');
+const Promise = require('bluebird');
 
-// const pool = new Pool({
-//   user: 'eddielo',
-//   host: 'localhost',
-//   database: 'alsoBought',
-// });
+const initOptions = {
+  promiseLib: Promise,
+  // query(event) {
+  //   console.log('QUERY:', event.query);
+  // },
+  error(error, event) {
+    if (event.cn) {
+      console.log('CN:', event.cn);
+      console.log('EVENT:', error.message || error);
+    }
+  },
+};
+const pgp = require('pg-promise')(initOptions);
 
-const client = new Client({
-  user: 'eddielo',
-  host: 'localhost',
+const cn = {
+  host: 'ec2-54-145-32-83.compute-1.amazonaws.com',
+  user: 'power_user',
+  password: '$nopass',
   database: 'robinhood',
-});
+};
 
-const query1 = 'GHFDD';
-const query2 = 'FDGFD';
+const db = pgp(cn);
 
-client.connect();
-console.time('query1');
-client.query(`select companies.*, prices.current_price from companies, alsobought, prices
-              where alsobought.company_id = (
-                select id from companies where company_abbr = '${query1}'
-              ) and companies.id = alsobought.alsobought_id
-              and companies.id = prices.company_id;`)
-  .then(() => console.timeEnd('query1'))
-  .catch(e => console.error(e.stack));
+const queries = {
+  getAlsoBoughtByAbbreviation: companyAbbreviation => db.any(
+    `SELECT comp_a.*, prices.current_price FROM companies AS comp_a
+      INNER JOIN alsobought ON comp_a.id = alsobought.alsobought_id
+      INNER JOIN companies AS comp_b ON comp_b.company_abbr = '${companyAbbreviation}'
+      AND comp_b.id = alsobought.company_id
+      INNER JOIN prices ON alsobought.alsobought_id = prices.company_id;`,
+  ),
+  getAlsoBoughtById: companyId => db.any(
+    `SELECT companies.*, prices.current_price FROM companies, alsobought, prices
+      WHERE alsobought.company_id = ${companyId}
+      AND companies.id = alsobought.alsobought_id
+      AND companies.id = prices.company_id;`,
+  ),
+  getCompanyByAbbreviation: companyAbbreviation => db.any(
+    `SELECT companies.*, alsobought.alsobought_id, prices.current_price
+      FROM companies, alsobought, prices
+      WHERE companies.company_abbr = '${companyAbbreviation}'
+      AND alsobought.company_id = companies.id
+      AND prices.company_id = companies.id`,
+  ),
+  getCompanyById: companyId => db.any(
+    `SELECT companies.*, alsobought.alsobought_id, prices.current_price
+      FROM companies, alsobought, prices
+      WHERE companies.id = '${companyId}'
+      AND alsobought.company_id = companies.id
+      AND prices.company_id = companies.id`,
+  ),
+  insertCompany: ({ companyAbbr, company, percentage }) => db.any(
+    `INSERT INTO companies (company_abbr, company, percentage)
+      VALUES ('${companyAbbr}', '${company}', ${percentage})
+      RETURNING id`,
+  ),
+  insertAlsoBought: (companyId, alsoBought) => Promise.all(alsoBought
+    .map(alsoBoughtId => db.any(
+      `INSERT INTO alsobought (company_id, alsobought_id)
+        VALUES (${companyId}, ${alsoBoughtId})`,
+    ))),
+  insertPrices: (companyId, currentDay) => Promise.all(currentDay
+    .map(({ currentPrice }) => db.any(
+      `INSERT INTO prices (company_id, current_price)
+        VALUES (${companyId}, ${currentPrice})`,
+    ))),
+  insertPrice: (companyId, currentPrice) => db.any(
+    `INSERT INTO prices (company_id, current_price)
+      VALUES (${companyId}, ${currentPrice})`,
+  ),
+  deleteCompany: companyAbbr => db.any(
+    `DELETE FROM companies
+      WHERE company_abbr = '${companyAbbr}'
+      RETURNING id`,
+  ),
+  deleteAlsoBought: companyId => db.any(`DELETE FROM alsobought WHERE company_id = '${companyId}'`),
+  deletePrices: companyId => db.any(`DELETE FROM prices WHERE company_id = '${companyId}'`),
+};
 
-console.time('query2');
-client.query(`select companies.* from companies, alsobought 
-              where alsobought.company_id = (
-                select id from companies where company_abbr = '${query2}'
-              ) and companies.id = alsobought.alsobought_id;`)
-  .then((res) => {
-    const ids = [];
-    res.rows.forEach(row => ids.push(row.id));
-    client.query(`select * from prices
-                  where company_id in (${ids.join(',')});`)
-      .then(() => console.timeEnd('query2'))
-      .then(() => client.end())
-      .catch(e => console.error(e.stack));
-  })
-  .catch(e => console.error(e.stack));
+module.exports = queries;

@@ -2,37 +2,30 @@ const model = require('./model');
 
 const controller = {
   peopleAlsoBought: {
-    get: (req, res) => {
-      model.peopleAlsoBought.get(req.params.company, (err, data) => {
-        if (err) { res.status('400').send(err); }
-        res.json(data);
-      });
-    },
+    get: (req, res) => model.peopleAlsoBought.get(req.params.companyAbbr)
+      .then(data => res.json(data))
+      .catch(error => res.status('400').send(error.stack)),
   },
   company: {
-    get: (req, res) => {
-      model.company.get(req.params.company, (err, data) => {
-        if (err) { res.status('400').send(err); }
-        res.json(data);
-      });
-    },
-    post: (req, res) => {
-      model.company.post(req.body, (err) => {
-        if (err) { res.status('400').send(err); }
-        res.send();
-      });
-    },
-    put: (req, res) => {
-      model.company.put(req.body, (err) => {
-        if (err) { res.status('400').send(err); }
-        res.send();
-      });
-    },
-    delete: (req, res) => {
-      model.company.delete(req.params.company, (err) => {
-        if (err) { res.status('400').send(err); }
-        res.send();
-      });
+    get: (req, res) => model.company.get(req.params.companyAbbr)
+      .then(data => res.json(data))
+      .catch(error => res.status('400').send(error.stack)),
+    post: (req, res) => model.company.post(req.body)
+      .then(() => res.send())
+      .catch(error => res.status('400').send(error.stack)),
+    put: (req, res) => model.company.put(req.body)
+      .then(() => res.send())
+      .catch(error => res.status('400').send(error.stack)),
+    delete: (req, res) => model.company.delete(req.params.companyAbbr)
+      .then(() => res.send())
+      .catch(error => res.status('400').send(error.stack)),
+    prices: {
+      post: (req, res) => model.company.prices.post(req.params.companyId, req.body)
+        .then(() => res.send())
+        .catch(error => res.status('400').send(error)),
+      delete: (req, res) => model.company.prices.delete(req.params.companyId)
+        .then(() => res.send())
+        .catch(error => res.status('400').send(error)),
     },
   },
 };

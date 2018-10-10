@@ -1,13 +1,18 @@
+CREATE DATABASE robinhood;
+\c robinhood;
+
+-- CREATE DATABASE robinhood_replica;
+-- \c robinhood_replica
+
 DROP TABLE IF EXISTS companies;
 DROP TABLE IF EXISTS alsobought;
 DROP TABLE IF EXISTS prices;
 
 CREATE TABLE companies (
-  id INT NOT NULL,
-  company_abbr VARCHAR(5) NOT NULL,
+  id SERIAL PRIMARY KEY,
+  company_abbr VARCHAR(5) NOT NULL UNIQUE,
   company VARCHAR(25) NOT NULL,
-  percentage SMALLINT NOT NULL,
-  PRIMARY KEY (id)
+  percentage SMALLINT NOT NULL
 );
 
 CREATE TABLE alsobought (
@@ -24,12 +29,12 @@ CREATE TABLE prices (
 -- QUERYING
 -- \timing
 
--- select companies.* from companies, alsobought 
+-- select companies.* from companies, alsobought
 -- where alsobought.company_id = (
 --   select id from companies where company_abbr = 'AGSDV'
 -- ) and companies.id = alsobought.alsobought_id;
 
--- select companies.* from companies, alsobought 
+-- select companies.* from companies, alsobought
 -- where alsobought.company_id = (
 --   select id from companies where company_abbr = 'AGSDV'
 -- ) and companies.id = alsobought.alsobought_id;
