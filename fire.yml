@@ -1,11 +1,11 @@
 config:
-  target: 'http://localhost:8888'
+  target: 'http://localhost:3000'
   phases:
-    - duration: 60
+    - duration: 30
       arrivalRate: 5
       rampTo: 10
       name: "Warming up the application"
-    - duration: 300
+    - duration: 60
       arrivalRate: 10
       name: "Sustaining high load"
   payload:

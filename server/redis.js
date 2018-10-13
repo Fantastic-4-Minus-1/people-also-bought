@@ -1,29 +1,31 @@
-const redis = require('redis');
-const path = require('path');
+require('newrelic');
 
-const client = redis.createClient(process.env.REDIS_PORT || 6379);
+const express = require('express');
+const parser = require('body-parser');
+const compression = require('compression');
+const axios = require('axios');
+require('./index');
 
-const save = (key, value) => {
-  client.setex(key, 30, value);
-};
+const { save, cache } = require('../database/redis');
+const app = express();
 
-const cache = (req, res, next) => {
-  client.get(path.basename(req.url), (error, data) => {
-    if (error) { res.status('401').send(error); }
-    if (data !== null) {
-      save(req.params.companyAbbr, JSON.stringify(data));
+app.use(compression());
+app.use(parser.json());
+
+app.set('PORT', process.env.PORT || 3000);
+
+app.use('/:companyAbbr', express.static('public'));
+
+app.get('/api/people-also-bought/:companyAbbr', cache, (req, res) => {
+  const loadBalancerURL = '';
+  return axios.get(loadBalancerURL + req.url)
+    .then(({ data }) => {
+      save(data);
       res.send(data);
-    } else {
-      next();
-    }
-  });
-};
+    })
+    .catch(error => res.status('400').send(error));
+});
 
-module.exports = {
-  save,
-  cache,
-};
-
-client.on('connect', () => {
-  console.log('Redis is connected!');
+app.listen(app.get('PORT'), () => {
+  console.log(`Server is connected to ${app.get('PORT')}!`);
 });
