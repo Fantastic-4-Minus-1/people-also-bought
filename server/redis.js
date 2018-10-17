@@ -1,21 +1,35 @@
-const router = require('express').Router();
-const controller = require('./controller');
+require('newrelic');
 
+const express = require('express');
+const parser = require('body-parser');
+const compression = require('compression');
+const path = require('path');
+const axios = require('axios');
+const proxy = require('express-http-proxy');
 
-router.route('/people-also-bought/:abbrOrId')
-  .get(controller.peopleAlsoBought.get);
+const { save, cache } = require('../database/redis');
+const app = express();
 
-router.route('/company')
-  .post(controller.company.post)
-  .put(controller.company.put);
+app.use(compression());
+app.use(parser.json());
 
-router.route('/company/:companyAbbr')
-  .get(controller.company.get)
-  .delete(controller.company.delete);
+app.set('PORT', process.env.PORT || 3000);
 
-router.route('/company/prices/:companyId')
-  .post(controller.company.prices.post)
-  .delete(controller.company.prices.delete);
+app.use('/:companyAbbr', express.static('public'));
 
+const url = 'http://ec2-54-173-182-247.compute-1.amazonaws.com';
 
-module.exports = router;
+app.get('/api/people-also-bought/:abbrOrId', cache, (req, res, next) => {
+  axios.get(url + req.url)
+    .then(({ data }) => {
+      save(path.basename(req.url), JSON.stringify(data))
+      res.send(data)
+    })
+    .catch(error => res.status('400').send(error));
+});
+
+app.use('/', (proxy(url)));
+
+app.listen(app.get('PORT'), () => {
+  console.log(`Server is connected to ${app.get('PORT')}!`);
+});

@@ -3,7 +3,7 @@ const queries = require('../database');
 const model = {
   peopleAlsoBought: {
     get: (abbrevationOrId) => {
-      const getAlsoBought = Number.isNaN(Number(abbrevationOrId))
+      const getAlsoBought = isNaN(abbrevationOrId)
         ? 'getAlsoBoughtByAbbreviation'
         : 'getAlsoBoughtById';
       return queries[getAlsoBought](abbrevationOrId)
@@ -50,7 +50,8 @@ const model = {
         ];
         return Promise.all(insert);
       }),
-    put: () => {},
+    put: (body) => {
+    },
     delete: companyAbbr => queries.deleteCompany(companyAbbr)
       .then((data) => {
         console.log(data[0].id);
