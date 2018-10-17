@@ -1,31 +1,21 @@
-require('newrelic');
+const router = require('express').Router();
+const controller = require('./controller');
 
-const express = require('express');
-const parser = require('body-parser');
-const compression = require('compression');
-const axios = require('axios');
-require('./index');
 
-const { save, cache } = require('../database/redis');
-const app = express();
+router.route('/people-also-bought/:abbrOrId')
+  .get(controller.peopleAlsoBought.get);
 
-app.use(compression());
-app.use(parser.json());
+router.route('/company')
+  .post(controller.company.post)
+  .put(controller.company.put);
 
-app.set('PORT', process.env.PORT || 3000);
+router.route('/company/:companyAbbr')
+  .get(controller.company.get)
+  .delete(controller.company.delete);
 
-app.use('/:companyAbbr', express.static('public'));
+router.route('/company/prices/:companyId')
+  .post(controller.company.prices.post)
+  .delete(controller.company.prices.delete);
 
-app.get('/api/people-also-bought/:companyAbbr', cache, (req, res) => {
-  const loadBalancerURL = '';
-  return axios.get(loadBalancerURL + req.url)
-    .then(({ data }) => {
-      save(data);
-      res.send(data);
-    })
-    .catch(error => res.status('400').send(error));
-});
 
-app.listen(app.get('PORT'), () => {
-  console.log(`Server is connected to ${app.get('PORT')}!`);
-});
+module.exports = router;
