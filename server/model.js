@@ -8,6 +8,21 @@ const model = {
         : 'getAlsoBoughtById';
       return queries[getAlsoBought](abbrevationOrId)
         .then((data) => {
+          // const numOfPricePerEntry = data[1].length / 12;
+          // const companies = data[0].map(company => ({
+          //   id: company.id,
+          //   companyAbbr: company.company_abbr,
+          //   company: company.company,
+          //   percentage: company.percentage,
+          // }));
+          // const prices = data[1].map(company => ({
+          //   currentPrice: company.current_price.slice(1),
+          // }));
+          // for (let i = 0; i < 12; i += 1) {
+          //   companies[i].currentDay = prices
+          //     .slice(numOfPricePerEntry * i, numOfPricePerEntry * (i + 1));
+          // }
+          // return companies;
           const numOfPricePerEntry = data.length / 12;
           const companies = data
             .filter((_company, idx) => idx % numOfPricePerEntry === 0)
@@ -24,6 +39,7 @@ const model = {
             companies[i].currentDay = prices
               .slice(numOfPricePerEntry * i, numOfPricePerEntry * (i + 1));
           }
+          console.log(companies[0]);
           return companies;
         });
     },
